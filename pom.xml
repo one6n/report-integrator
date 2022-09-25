@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>it.one6n</groupId>
 	<artifactId>report-integrator</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.0.1</version>
 	<name>report-integrator</name>
 	<description>Report transformer and integrator</description>
 	<properties>
