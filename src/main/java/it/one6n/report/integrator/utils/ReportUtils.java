@@ -2,13 +2,20 @@ package it.one6n.report.integrator.utils;
 
 import java.nio.file.Path;
 
-import org.springframework.util.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 public class ReportUtils {
 
-	public static final String ZIP_EXTENSION = ".zip";
+	public static final String ZIP_EXTENSION = "zip";
 
 	private ReportUtils() {
+	}
+
+	public static String getCustomerFromFilename(String filename, String delimiter) {
+		if (filename.contains(delimiter))
+			return StringUtils.substringBefore(filename, delimiter);
+		else
+			return StringUtils.EMPTY;
 	}
 
 	public static boolean isValidReportFormat(Path file) {
@@ -16,6 +23,6 @@ public class ReportUtils {
 	}
 
 	public static boolean isValidReportFormat(String filename) {
-		return StringUtils.endsWithIgnoreCase(filename, ZIP_EXTENSION);
+		return StringUtils.endsWithIgnoreCase(StringUtils.substringAfterLast(filename, "."), ReportUtils.ZIP_EXTENSION);
 	}
 }
