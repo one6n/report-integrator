@@ -33,6 +33,7 @@ public class ReportIntegratorService {
 		String customer = ReportUtils.getCustomerFromFilename(file.getName(), "_");
 		ReportConfiguration reportConfiguration = getReportConfigurationRepo().findOneByCustomer(customer).orElseThrow(
 				() -> new NoSuchElementException(String.format("No configuration found for customer=%s", customer)));
-		log.debug("build reports for customer={}", customer);
+		if (log.isDebugEnabled())
+			log.debug("reportConfiguration={}", reportConfiguration);
 	}
 }
