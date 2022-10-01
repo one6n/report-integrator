@@ -1,4 +1,4 @@
-package it.one6n.report.integrator.repo;
+package it.one6n.report.integrator.repos;
 
 import java.util.Optional;
 

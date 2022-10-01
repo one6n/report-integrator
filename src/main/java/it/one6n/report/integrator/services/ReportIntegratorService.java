@@ -8,7 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import it.one6n.report.integrator.models.ReportConfiguration;
-import it.one6n.report.integrator.repo.ReportConfigurationRepo;
+import it.one6n.report.integrator.repos.ReportConfigurationRepo;
 import it.one6n.report.integrator.utils.ReportUtils;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;

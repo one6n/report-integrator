@@ -17,7 +17,7 @@ import lombok.Getter;
 @EnableMongoRepositories(basePackages = MongoDbConfigs.MONGO_REPOSITORY_BASE_PACKAGE)
 public class MongoDbConfigs {
 
-	public static final String MONGO_REPOSITORY_BASE_PACKAGE = "it.one6n.report.integrator.repo";
+	public static final String MONGO_REPOSITORY_BASE_PACKAGE = "it.one6n.report.integrator.repos";
 
 	private MongoTemplate mongoTemplate;
 

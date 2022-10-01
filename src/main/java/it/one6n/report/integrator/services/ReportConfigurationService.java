@@ -5,7 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import it.one6n.report.integrator.models.ReportConfiguration;
-import it.one6n.report.integrator.repo.ReportConfigurationRepo;
+import it.one6n.report.integrator.repos.ReportConfigurationRepo;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -18,10 +18,15 @@ public class ReportConfigurationService {
 
 	@Autowired
 	public ReportConfigurationService(ReportConfigurationRepo reportConfigurationRepo) {
+		this.reportConfigurationRepo = reportConfigurationRepo;
 	}
 
 	public ReportConfiguration findByCustomer(String customer) {
 		log.debug("findByCustomer={}", customer);
 		return getReportConfigurationRepo().findOneByCustomer(StringUtils.trim(customer)).orElseThrow();
+	}
+
+	public ReportConfiguration saveReportConfiguration(ReportConfiguration reportConfiguration) {
+		return getReportConfigurationRepo().save(reportConfiguration);
 	}
 }
