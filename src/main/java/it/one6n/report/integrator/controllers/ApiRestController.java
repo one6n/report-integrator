@@ -3,6 +3,7 @@ package it.one6n.report.integrator.controllers;
 import java.util.NoSuchElementException;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -44,24 +45,43 @@ public class ApiRestController {
 	public ResponseEntity<TypedRestResult<ReportConfigurationDto>> getReportConfiguration(
 			@PathVariable String customer) {
 		log.info("method=getReportConfiguration, customer={}", customer);
+		ResponseEntity<TypedRestResult<ReportConfigurationDto>> responseEntity = null;
 		try {
 			ReportConfiguration reportConfiguration = getReportConfigurationService().findByCustomer(customer);
-			return ResponseEntity.status(HttpStatus.OK).body(new TypedRestResult<ReportConfigurationDto>(true,
-					ReportConfigurationMapperUtils.entityToDto(reportConfiguration)));
+			responseEntity = ResponseEntity.status(HttpStatus.OK).body(new TypedRestResult<ReportConfigurationDto>(true,
+					null, ReportConfigurationMapperUtils.entityToDto(reportConfiguration)));
 		} catch (NoSuchElementException e) {
 			log.error(e.getMessage(), e);
-			return ResponseEntity.status(HttpStatus.NOT_FOUND)
-					.body(new TypedRestResult<ReportConfigurationDto>(false, null));
+			responseEntity = ResponseEntity.status(HttpStatus.NOT_FOUND)
+					.body(new TypedRestResult<ReportConfigurationDto>(false, e.getMessage(), null));
+		} catch (Exception e) {
+			log.error(e.getMessage(), e);
+			responseEntity = ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+					.body(new TypedRestResult<ReportConfigurationDto>(false, e.getMessage(), null));
 		}
+		return responseEntity;
 	}
 
 	@PostMapping(path = ApiRestController.CREATE_CONFIGURATION_PATH, consumes = "application/json", produces = "application/json")
 	public ResponseEntity<TypedRestResult<ReportConfigurationDto>> createReportConfiguration(
 			@RequestBody ReportConfigurationDto reportConfigurationDto) {
 		log.info("method=createReportConfiguration, reportConfigurationDto={}", reportConfigurationDto);
-		ReportConfiguration reportConfiguration = getReportConfigurationService()
-				.saveReportConfiguration(ReportConfigurationMapperUtils.dtoToEntity(reportConfigurationDto));
-		return ResponseEntity.status(HttpStatus.CREATED).body(new TypedRestResult<ReportConfigurationDto>(true,
-				ReportConfigurationMapperUtils.entityToDto(reportConfiguration)));
+		ResponseEntity<TypedRestResult<ReportConfigurationDto>> responseEntity = null;
+		try {
+			ReportConfiguration reportConfiguration = getReportConfigurationService()
+					.saveReportConfiguration(ReportConfigurationMapperUtils.dtoToEntity(reportConfigurationDto));
+			responseEntity = ResponseEntity.status(HttpStatus.CREATED).body(new TypedRestResult<ReportConfigurationDto>(
+					true, null, ReportConfigurationMapperUtils.entityToDto(reportConfiguration)));
+		} catch (DuplicateKeyException e) {
+			log.error(e.getMessage(), e);
+			responseEntity = ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+					.body(new TypedRestResult<ReportConfigurationDto>(false,
+							"Another configuration is present for this customer", null));
+		} catch (Exception e) {
+			log.error(e.getMessage(), e);
+			responseEntity = ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+					.body(new TypedRestResult<ReportConfigurationDto>(false, e.getMessage(), null));
+		}
+		return responseEntity;
 	}
 }
