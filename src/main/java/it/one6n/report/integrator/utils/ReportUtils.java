@@ -7,6 +7,7 @@ import org.apache.commons.lang3.StringUtils;
 public class ReportUtils {
 
 	public static final String ZIP_EXTENSION = "zip";
+	public static final String DEFAULT_DATE_FORMAT = "yyyyMMddhhssSSS";
 
 	private ReportUtils() {
 	}
