@@ -17,11 +17,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import io.swagger.v3.oas.annotations.Operation;
-import it.one6n.report.integrator.models.ReportConfiguration;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import it.one6n.report.integrator.records.TypedRestResult;
 import it.one6n.report.integrator.records.dto.ReportConfigurationDto;
 import it.one6n.report.integrator.services.ReportConfigurationService;
-import it.one6n.report.integrator.utils.ReportConfigurationMapperUtils;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -45,6 +47,10 @@ public class ApiRestController {
 	}
 
 	@Operation(summary = "Get a Report Configuration by Customer")
+	@ApiResponses(value = {
+			@ApiResponse(responseCode = "200", description = "Given the customer's configuration", content = {
+					@Content(mediaType = "application/json", schema = @Schema(implementation = ReportConfigurationDto.class)) }),
+			@ApiResponse(responseCode = "404", description = "Invalid parameter supplied", content = @Content) })
 	@GetMapping(path = ApiRestController.GET_CONFIGURATION_PATH, produces = "application/json")
 	public ResponseEntity<TypedRestResult<ReportConfigurationDto>> getReportConfiguration(
 			@PathVariable String customer) {
@@ -53,9 +59,9 @@ public class ApiRestController {
 		try {
 			if (StringUtils.isBlank(customer))
 				throw new InvalidParameterException("The customer is null or empty");
-			ReportConfiguration reportConfiguration = getReportConfigurationService().findByCustomer(customer);
-			responseEntity = ResponseEntity.status(HttpStatus.OK).body(new TypedRestResult<ReportConfigurationDto>(true,
-					null, ReportConfigurationMapperUtils.entityToDto(reportConfiguration)));
+			ReportConfigurationDto reportConfigurationDto = getReportConfigurationService().findDtoByCustomer(customer);
+			responseEntity = ResponseEntity.status(HttpStatus.OK)
+					.body(new TypedRestResult<ReportConfigurationDto>(true, null, reportConfigurationDto));
 		} catch (InvalidParameterException e) {
 			log.error(e.getMessage(), e);
 			responseEntity = ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -73,6 +79,9 @@ public class ApiRestController {
 	}
 
 	@Operation(summary = "Create new Report Configuration")
+	@ApiResponses(value = { @ApiResponse(responseCode = "201", description = "Configuration created", content = {
+			@Content(mediaType = "application/json", schema = @Schema(implementation = ReportConfigurationDto.class)) }),
+			@ApiResponse(responseCode = "404", description = "Invalid parameter supplied", content = @Content) })
 	@PostMapping(path = ApiRestController.CREATE_CONFIGURATION_PATH, consumes = "application/json", produces = "application/json")
 	public ResponseEntity<TypedRestResult<ReportConfigurationDto>> createReportConfiguration(
 			@RequestBody ReportConfigurationDto reportConfigurationDto) {
@@ -82,10 +91,10 @@ public class ApiRestController {
 			if (reportConfigurationDto == null || StringUtils.isBlank(reportConfigurationDto.customer())
 					|| StringUtils.isNotBlank(reportConfigurationDto.id()))
 				throw new InvalidParameterException("The configuration is not valid");
-			ReportConfiguration reportConfiguration = getReportConfigurationService()
-					.saveReportConfiguration(ReportConfigurationMapperUtils.dtoToEntity(reportConfigurationDto));
-			responseEntity = ResponseEntity.status(HttpStatus.CREATED).body(new TypedRestResult<ReportConfigurationDto>(
-					true, null, ReportConfigurationMapperUtils.entityToDto(reportConfiguration)));
+			ReportConfigurationDto configurationCreated = getReportConfigurationService()
+					.saveReportConfigurationFromDto(reportConfigurationDto);
+			responseEntity = ResponseEntity.status(HttpStatus.CREATED)
+					.body(new TypedRestResult<ReportConfigurationDto>(true, null, configurationCreated));
 		} catch (InvalidParameterException e) {
 			log.error(e.getMessage(), e);
 			responseEntity = ResponseEntity.status(HttpStatus.BAD_REQUEST)
