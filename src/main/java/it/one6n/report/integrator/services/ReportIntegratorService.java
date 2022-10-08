@@ -1,10 +1,13 @@
 package it.one6n.report.integrator.services;
 
 import java.io.File;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.NoSuchElementException;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -41,14 +44,21 @@ public class ReportIntegratorService {
 			log.debug("reportConfiguration={}", reportConfiguration);
 		Date processingDate = new Date();
 		String filenameWithoutExtension = StringUtils.substringBeforeLast(file.getName(), ".");
-		File spoolDir = makeAndPopulateSpoolDir(file, filenameWithoutExtension, processingDate);
-
-	}
-
-	private File makeAndPopulateSpoolDir(File file, String filenameWithoutExtension, Date processingDate) {
-		File reportSpoolDir = makeSpoolDir(filenameWithoutExtension, processingDate);
-		ZipUtils.unzipFile(file, reportSpoolDir);
-		return reportSpoolDir;
+		File spoolDir = makeSpoolDir(filenameWithoutExtension, processingDate);
+		try {
+			populateSpoolDir(file, spoolDir);
+			// search a single csv for validate the report file
+			// read the csv and build the list of map of lines
+			if (BooleanUtils.isTrue(reportConfiguration.getExportToCustomer()))
+				createExportToCustomer(reportConfiguration, spoolDir, customer, processingDate);
+			if (BooleanUtils.isTrue(reportConfiguration.getExportToSpm()))
+				createExportToSpm(reportConfiguration, spoolDir, customer, processingDate);
+			if (BooleanUtils.isTrue(reportConfiguration.getExportToDocumentRoom()))
+				createExportToDocumentRoom(reportConfiguration, spoolDir, customer, processingDate);
+			throw new RuntimeException("Ciao");
+		} finally {
+			deleteSpoolDir(spoolDir);
+		}
 	}
 
 	private File makeSpoolDir(String filenameWithoutExtension, Date processingDate) {
@@ -58,5 +68,33 @@ public class ReportIntegratorService {
 		if (!reportSpoolDir.exists())
 			reportSpoolDir.mkdirs();
 		return reportSpoolDir;
+	}
+
+	private void populateSpoolDir(File file, File reportSpoolDir) {
+		ZipUtils.unzipFile(file, reportSpoolDir);
+	}
+
+	private void deleteSpoolDir(File spoolDir) {
+		try {
+			if (spoolDir.exists())
+				FileUtils.deleteDirectory(spoolDir);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	private void createExportToCustomer(ReportConfiguration reportConfiguration, File spoolDir, String customer,
+			Date processDate) {
+		log.info("exportToCustomer={}", customer);
+	}
+
+	private void createExportToSpm(ReportConfiguration reportConfiguration, File spoolDir, String customer,
+			Date processDate) {
+		log.info("exportToSpm for customer={}", customer);
+	}
+
+	private void createExportToDocumentRoom(ReportConfiguration reportConfiguration, File spoolDir, String customer,
+			Date processDate) {
+		log.info("exportToDocument for customer={}", customer);
 	}
 }
