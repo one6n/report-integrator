@@ -8,6 +8,9 @@ public class ReportUtils {
 
 	public static final String ZIP_EXTENSION = "zip";
 	public static final String CSV_EXTENSION = "csv";
+
+	public static final String CSV_SEMICOLON_SEPARATOR = ";";
+
 	public static final String DEFAULT_DATE_FORMAT = "yyyyMMddhhssSSS";
 
 	private ReportUtils() {

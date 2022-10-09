@@ -1,12 +1,15 @@
 package it.one6n.report.integrator.services;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -58,19 +61,32 @@ public class ReportIntegratorService {
 		File spoolDir = makeSpoolDir(filenameWithoutExtension, processingDate);
 		try {
 			populateSpoolDir(file, spoolDir);
-			// search a single csv for validate the report file
-			// read the csv and build the list of map of lines
-			List<Map<String, String>> linesMap = buildLinesMap(spoolDir);
+			List<Map<String, String>> linesMap = buildLineMaps(spoolDir);
 			if (BooleanUtils.isTrue(reportConfiguration.getExportToCustomer()))
-				createExportToCustomer(reportConfiguration, spoolDir, customer, processingDate);
+				createExportToCustomer(customer, reportConfiguration, spoolDir, processingDate, linesMap);
 			if (BooleanUtils.isTrue(reportConfiguration.getExportToSpm()))
-				createExportToSpm(reportConfiguration, spoolDir, customer, processingDate);
+				createExportToSpm(customer, reportConfiguration, spoolDir, processingDate, linesMap);
 			if (BooleanUtils.isTrue(reportConfiguration.getExportToDocumentRoom()))
-				createExportToDocumentRoom(reportConfiguration, spoolDir, customer, processingDate);
+				createExportToDocumentRoom(customer, reportConfiguration, spoolDir, processingDate, linesMap);
 			throw new RuntimeException("Ciao");
 		} finally {
 			deleteSpoolDir(spoolDir);
 		}
+	}
+
+	private void createExportToCustomer(String customer, ReportConfiguration reportConfiguration, File spoolDir,
+			Date processDate, List<Map<String, String>> lineMaps) {
+		log.info("exportToCustomer={}", customer);
+	}
+
+	private void createExportToSpm(String customer, ReportConfiguration reportConfiguration, File spoolDir,
+			Date processDate, List<Map<String, String>> lineMaps) {
+		log.info("exportToSpm for customer={}", customer);
+	}
+
+	private void createExportToDocumentRoom(String customer, ReportConfiguration reportConfiguration, File spoolDir,
+			Date processDate, List<Map<String, String>> lineMaps) {
+		log.info("exportToDocument for customer={}", customer);
 	}
 
 	private File makeSpoolDir(String filenameWithoutExtension, Date processingDate) {
@@ -95,16 +111,43 @@ public class ReportIntegratorService {
 		}
 	}
 
-	private List<Map<String, String>> buildLinesMap(File spoolDir) {
-		List<Map<String, String>> linesMap = new ArrayList<>();
-		Path spoolDirPath = spoolDir.toPath();
-		File indexFile = foundIndexFile(spoolDirPath);
-		return linesMap;
+	private List<Map<String, String>> buildLineMaps(File spoolDir) {
+		File indexFile = foundIndexFile(spoolDir);
+		List<Map<String, String>> lineMaps = readIndexAllLines(indexFile);
+		if (lineMaps == null || lineMaps.isEmpty() || lineMaps.size() < 2)
+			throw new ReportIndexException(String.format(
+					"Error, the index file must contain at least the header and one line. Line(s) found(s)=%s",
+					lineMaps.size()));
+		return lineMaps;
 	}
 
-	private File foundIndexFile(Path spoolDirPath) {
+	private List<Map<String, String>> readIndexAllLines(File indexFile) {
+		List<Map<String, String>> lineMaps = new ArrayList<>();
+		try (BufferedReader br = new BufferedReader(new FileReader(indexFile))) {
+			String line = null;
+			String[] headers = null;
+			boolean firstLine = true;
+			while ((line = br.readLine()) != null) {
+				String[] splittedLine = line.split(ReportUtils.CSV_SEMICOLON_SEPARATOR);
+				if (firstLine) {
+					headers = splittedLine;
+					firstLine = false;
+				} else {
+					Map<String, String> lineMap = new HashMap<>();
+					for (int i = 0; i < headers.length; i++)
+						lineMap.put(headers[i], splittedLine[i]);
+					lineMaps.add(lineMap);
+				}
+			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+		return lineMaps;
+	}
+
+	private File foundIndexFile(File spoolDir) {
 		List<File> indexFiles = new ArrayList<>();
-		try (Stream<Path> files = Files.list(spoolDirPath)) {
+		try (Stream<Path> files = Files.list(spoolDir.toPath())) {
 			files.filter(Files::isRegularFile).filter(ReportUtils::isValidIndexFormat).forEach(file -> {
 				indexFiles.add(file.toFile());
 			});
@@ -115,20 +158,5 @@ public class ReportIntegratorService {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-	}
-
-	private void createExportToCustomer(ReportConfiguration reportConfiguration, File spoolDir, String customer,
-			Date processDate) {
-		log.info("exportToCustomer={}", customer);
-	}
-
-	private void createExportToSpm(ReportConfiguration reportConfiguration, File spoolDir, String customer,
-			Date processDate) {
-		log.info("exportToSpm for customer={}", customer);
-	}
-
-	private void createExportToDocumentRoom(ReportConfiguration reportConfiguration, File spoolDir, String customer,
-			Date processDate) {
-		log.info("exportToDocument for customer={}", customer);
 	}
 }
