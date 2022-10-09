@@ -2,9 +2,15 @@ package it.one6n.report.integrator.services;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.stream.Stream;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.BooleanUtils;
@@ -13,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import it.one6n.report.integrator.exceptions.ReportIndexException;
 import it.one6n.report.integrator.models.ReportConfiguration;
 import it.one6n.report.integrator.repos.ReportConfigurationRepo;
 import it.one6n.report.integrator.utils.ReportUtils;
@@ -27,6 +34,10 @@ public class ReportIntegratorService {
 
 	@Value("${report.spool.dir}")
 	private String reportSpoolDir;
+	@Value("${spm.output.dir}")
+	private String spmOutputDir;
+	@Value("${documentRoom.output.dir}")
+	private String documentRoomOutputDir;
 
 	private ReportConfigurationRepo reportConfigurationRepo;
 
@@ -49,6 +60,7 @@ public class ReportIntegratorService {
 			populateSpoolDir(file, spoolDir);
 			// search a single csv for validate the report file
 			// read the csv and build the list of map of lines
+			List<Map<String, String>> linesMap = buildLinesMap(spoolDir);
 			if (BooleanUtils.isTrue(reportConfiguration.getExportToCustomer()))
 				createExportToCustomer(reportConfiguration, spoolDir, customer, processingDate);
 			if (BooleanUtils.isTrue(reportConfiguration.getExportToSpm()))
@@ -78,6 +90,28 @@ public class ReportIntegratorService {
 		try {
 			if (spoolDir.exists())
 				FileUtils.deleteDirectory(spoolDir);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	private List<Map<String, String>> buildLinesMap(File spoolDir) {
+		List<Map<String, String>> linesMap = new ArrayList<>();
+		Path spoolDirPath = spoolDir.toPath();
+		File indexFile = foundIndexFile(spoolDirPath);
+		return linesMap;
+	}
+
+	private File foundIndexFile(Path spoolDirPath) {
+		List<File> indexFiles = new ArrayList<>();
+		try (Stream<Path> files = Files.list(spoolDirPath)) {
+			files.filter(Files::isRegularFile).filter(ReportUtils::isValidIndexFormat).forEach(file -> {
+				indexFiles.add(file.toFile());
+			});
+			if (indexFiles.size() != 1)
+				throw new ReportIndexException(String
+						.format("Invalid number of Index file. Found=%s, only one is requerid", indexFiles.size()));
+			return indexFiles.get(0);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
