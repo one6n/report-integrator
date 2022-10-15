@@ -41,7 +41,8 @@ public class ReportsUtils {
 	}
 
 	public static boolean isValidReportFormat(String filename) {
-		return StringUtils.endsWithIgnoreCase(StringUtils.substringAfterLast(filename, "."), ReportsUtils.ZIP_EXTENSION);
+		return StringUtils.endsWithIgnoreCase(StringUtils.substringAfterLast(filename, "."),
+				ReportsUtils.ZIP_EXTENSION);
 	}
 
 	public static boolean isValidIndexFormat(Path file) {
@@ -49,7 +50,8 @@ public class ReportsUtils {
 	}
 
 	public static boolean isValidIndexFormat(String filename) {
-		return StringUtils.endsWithIgnoreCase(StringUtils.substringAfterLast(filename, "."), ReportsUtils.CSV_EXTENSION);
+		return StringUtils.endsWithIgnoreCase(StringUtils.substringAfterLast(filename, "."),
+				ReportsUtils.CSV_EXTENSION);
 	}
 
 	public static boolean isValidPdfFormat(Path file) {
@@ -57,7 +59,8 @@ public class ReportsUtils {
 	}
 
 	public static boolean isValidPdfFormat(String filename) {
-		return StringUtils.endsWithIgnoreCase(StringUtils.substringAfterLast(filename, "."), ReportsUtils.PDF_EXTENSION);
+		return StringUtils.endsWithIgnoreCase(StringUtils.substringAfterLast(filename, "."),
+				ReportsUtils.PDF_EXTENSION);
 	}
 
 	public static List<Map<String, String>> readIndexAllLines(File indexFile, List<String> headers) {
@@ -81,6 +84,10 @@ public class ReportsUtils {
 			throw new RuntimeException(e);
 		}
 		return lineMaps;
+	}
+
+	public static boolean isValidHeader(List<String> headerToValidate, List<String> header) {
+		return headerToValidate != null && !headerToValidate.isEmpty() ? headerToValidate.containsAll(header) : false;
 	}
 
 	public static List<File> getIndexFiles(File spoolDir) {
