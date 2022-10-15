@@ -7,23 +7,26 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 
-public class ReportUtils {
+public class ReportsUtils {
 
 	public static final String ZIP_EXTENSION = "zip";
 	public static final String CSV_EXTENSION = "csv";
+	public static final String PDF_EXTENSION = "pdf";
 
 	public static final String CSV_SEMICOLON_SEPARATOR = ";";
 
 	public static final String DEFAULT_DATE_FORMAT = "yyyyMMddhhssSSS";
 
-	private ReportUtils() {
+	private ReportsUtils() {
 	}
 
 	public static String getCustomerFromFilename(String filename, String delimiter) {
@@ -38,7 +41,7 @@ public class ReportUtils {
 	}
 
 	public static boolean isValidReportFormat(String filename) {
-		return StringUtils.endsWithIgnoreCase(StringUtils.substringAfterLast(filename, "."), ReportUtils.ZIP_EXTENSION);
+		return StringUtils.endsWithIgnoreCase(StringUtils.substringAfterLast(filename, "."), ReportsUtils.ZIP_EXTENSION);
 	}
 
 	public static boolean isValidIndexFormat(Path file) {
@@ -46,24 +49,31 @@ public class ReportUtils {
 	}
 
 	public static boolean isValidIndexFormat(String filename) {
-		return StringUtils.endsWithIgnoreCase(StringUtils.substringAfterLast(filename, "."), ReportUtils.CSV_EXTENSION);
+		return StringUtils.endsWithIgnoreCase(StringUtils.substringAfterLast(filename, "."), ReportsUtils.CSV_EXTENSION);
 	}
 
-	public static List<Map<String, String>> readIndexAllLines(File indexFile) {
+	public static boolean isValidPdfFormat(Path file) {
+		return isValidPdfFormat(file.toString());
+	}
+
+	public static boolean isValidPdfFormat(String filename) {
+		return StringUtils.endsWithIgnoreCase(StringUtils.substringAfterLast(filename, "."), ReportsUtils.PDF_EXTENSION);
+	}
+
+	public static List<Map<String, String>> readIndexAllLines(File indexFile, List<String> headers) {
 		List<Map<String, String>> lineMaps = new ArrayList<>();
 		try (BufferedReader br = new BufferedReader(new FileReader(indexFile))) {
 			String line = null;
-			String[] headers = null;
 			boolean firstLine = true;
 			while ((line = br.readLine()) != null) {
-				String[] splittedLine = line.split(ReportUtils.CSV_SEMICOLON_SEPARATOR);
+				String[] splittedLine = line.split(ReportsUtils.CSV_SEMICOLON_SEPARATOR);
 				if (firstLine) {
-					headers = splittedLine;
+					headers.addAll(Arrays.asList(splittedLine));
 					firstLine = false;
 				} else {
 					Map<String, String> lineMap = new HashMap<>();
-					for (int i = 0; i < headers.length; i++)
-						lineMap.put(headers[i], splittedLine[i]);
+					for (int i = 0; i < headers.size(); i++)
+						lineMap.put(headers.get(i), splittedLine[i]);
 					lineMaps.add(lineMap);
 				}
 			}
@@ -76,12 +86,35 @@ public class ReportUtils {
 	public static List<File> getIndexFiles(File spoolDir) {
 		List<File> indexFiles = new ArrayList<>();
 		try (Stream<Path> files = Files.list(spoolDir.toPath())) {
-			files.filter(Files::isRegularFile).filter(ReportUtils::isValidIndexFormat).forEach(file -> {
+			files.filter(Files::isRegularFile).filter(ReportsUtils::isValidIndexFormat).forEach(file -> {
 				indexFiles.add(file.toFile());
 			});
 			return indexFiles;
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	public static void copyPdFiles(File sourceDir, File destDir) {
+		try (Stream<Path> files = Files.list(sourceDir.toPath())) {
+			files.filter(Files::isRegularFile).filter(ReportsUtils::isValidPdfFormat).forEach(file -> {
+				try {
+					FileUtils.copyToDirectory(file.toFile(), destDir);
+				} catch (IOException e) {
+					throw new RuntimeException(e);
+				}
+			});
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	public static File makeExportWorkDir(File spoolDir, String exportName, boolean copyFiles) {
+		File workDir = new File(spoolDir, exportName);
+		if (!workDir.exists())
+			workDir.mkdirs();
+		if (copyFiles)
+			ReportsUtils.copyPdFiles(spoolDir, workDir);
+		return workDir;
 	}
 }

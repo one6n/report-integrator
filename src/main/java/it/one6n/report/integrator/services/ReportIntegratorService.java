@@ -3,10 +3,10 @@ package it.one6n.report.integrator.services;
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.BooleanUtils;
@@ -17,8 +17,7 @@ import org.springframework.stereotype.Service;
 
 import it.one6n.report.integrator.exceptions.ReportIndexException;
 import it.one6n.report.integrator.models.ReportConfiguration;
-import it.one6n.report.integrator.repos.ReportConfigurationRepo;
-import it.one6n.report.integrator.utils.ReportUtils;
+import it.one6n.report.integrator.utils.ReportsUtils;
 import it.one6n.report.integrator.utils.ZipUtils;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -35,18 +34,20 @@ public class ReportIntegratorService {
 	@Value("${documentRoom.output.dir}")
 	private String documentRoomOutputDir;
 
-	private ReportConfigurationRepo reportConfigurationRepo;
+	private ReportConfigurationService reportConfigurationService;
+	private SpmReportService spmReportService;
 
 	@Autowired
-	public ReportIntegratorService(ReportConfigurationRepo reportConfigurationRepo) {
-		this.reportConfigurationRepo = reportConfigurationRepo;
+	public ReportIntegratorService(ReportConfigurationService reportConfigurationService,
+			SpmReportService spmReportService) {
+		this.reportConfigurationService = reportConfigurationService;
+		this.spmReportService = spmReportService;
 	}
 
 	public void processReportFile(File file) {
 		log.info("Start processing report={}", file.getName());
-		String customer = ReportUtils.getCustomerFromFilename(file.getName(), "_");
-		ReportConfiguration reportConfiguration = getReportConfigurationRepo().findOneByCustomer(customer).orElseThrow(
-				() -> new NoSuchElementException("No configuration found for customer=%s".formatted(customer)));
+		String customer = ReportsUtils.getCustomerFromFilename(file.getName(), "_");
+		ReportConfiguration reportConfiguration = getReportConfigurationService().findByCustomer(customer);
 		if (log.isDebugEnabled())
 			log.debug("reportConfiguration={}", reportConfiguration);
 		Date processingDate = new Date();
@@ -54,35 +55,38 @@ public class ReportIntegratorService {
 		File spoolDir = makeSpoolDir(filenameWithoutExtension, processingDate);
 		try {
 			populateSpoolDir(file, spoolDir);
-			List<Map<String, String>> linesMap = buildLineMaps(spoolDir);
+			List<String> headers = new ArrayList<>();
+			List<Map<String, String>> linesMap = buildLineMaps(spoolDir, headers);
 			if (BooleanUtils.isTrue(reportConfiguration.getExportToCustomer()))
-				createExportToCustomer(customer, reportConfiguration, spoolDir, processingDate, linesMap);
+				createExportToCustomer(customer, reportConfiguration, spoolDir, processingDate, headers, linesMap);
 			if (BooleanUtils.isTrue(reportConfiguration.getExportToSpm()))
-				createExportToSpm(customer, reportConfiguration, spoolDir, processingDate, linesMap);
+				createExportToSpm(customer, reportConfiguration, spoolDir, processingDate, headers, linesMap);
 			if (BooleanUtils.isTrue(reportConfiguration.getExportToDocumentRoom()))
-				createExportToDocumentRoom(customer, reportConfiguration, spoolDir, processingDate, linesMap);
+				createExportToDocumentRoom(customer, reportConfiguration, spoolDir, processingDate, headers, linesMap);
 		} finally {
 			deleteSpoolDir(spoolDir);
 		}
 	}
 
 	private void createExportToCustomer(String customer, ReportConfiguration reportConfiguration, File spoolDir,
-			Date processDate, List<Map<String, String>> lineMaps) {
+			Date processDate, List<String> headers, List<Map<String, String>> lineMaps) {
 		log.info("exportToCustomer={}", customer);
 	}
 
 	private void createExportToSpm(String customer, ReportConfiguration reportConfiguration, File spoolDir,
-			Date processDate, List<Map<String, String>> lineMaps) {
+			Date processDate, List<String> headers, List<Map<String, String>> lineMaps) {
+		getSpmReportService().generateExportToSpm(customer, reportConfiguration, spoolDir, processDate, headers,
+				lineMaps);
 		log.info("exportToSpm for customer={}", customer);
 	}
 
 	private void createExportToDocumentRoom(String customer, ReportConfiguration reportConfiguration, File spoolDir,
-			Date processDate, List<Map<String, String>> lineMaps) {
+			Date processDate, List<String> headers, List<Map<String, String>> lineMaps) {
 		log.info("exportToDocument for customer={}", customer);
 	}
 
 	private File makeSpoolDir(String filenameWithoutExtension, Date processingDate) {
-		String processingDateString = new SimpleDateFormat(ReportUtils.DEFAULT_DATE_FORMAT).format(processingDate);
+		String processingDateString = new SimpleDateFormat(ReportsUtils.DEFAULT_DATE_FORMAT).format(processingDate);
 		File reportSpoolDir = new File(getReportSpoolDir(),
 				String.join("_", filenameWithoutExtension, processingDateString));
 		if (!reportSpoolDir.exists())
@@ -103,13 +107,13 @@ public class ReportIntegratorService {
 		}
 	}
 
-	private List<Map<String, String>> buildLineMaps(File spoolDir) {
-		List<File> indexFiles = ReportUtils.getIndexFiles(spoolDir);
+	private List<Map<String, String>> buildLineMaps(File spoolDir, List<String> headers) {
+		List<File> indexFiles = ReportsUtils.getIndexFiles(spoolDir);
 		if (indexFiles.size() != 1)
 			throw new ReportIndexException(
 					"Invalid number of Index file. Found=%s, must be one".formatted(indexFiles.size()));
 		File indexFile = indexFiles.get(0);
-		List<Map<String, String>> lineMaps = ReportUtils.readIndexAllLines(indexFile);
+		List<Map<String, String>> lineMaps = ReportsUtils.readIndexAllLines(indexFile, headers);
 		if (lineMaps == null || lineMaps.isEmpty() || lineMaps.size() < 1)
 			throw new ReportIndexException(
 					"Error, the index file must contain at least the header and one line. Line(s) found(s)=%s"

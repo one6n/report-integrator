@@ -14,7 +14,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import it.one6n.report.integrator.services.ReportIntegratorService;
-import it.one6n.report.integrator.utils.ReportUtils;
+import it.one6n.report.integrator.utils.ReportsUtils;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -41,7 +41,7 @@ public class InboundFileJobs {
 		Path inputPath = Paths.get(getInboundReportDir());
 		if (inputPath.toFile().exists() && inputPath.toFile().isDirectory())
 			try (Stream<Path> files = Files.list(inputPath)) {
-				files.filter(Files::isRegularFile).filter(ReportUtils::isValidReportFormat).forEach(file -> {
+				files.filter(Files::isRegularFile).filter(ReportsUtils::isValidReportFormat).forEach(file -> {
 					try {
 						lockAndProcessReportFile(file.toFile());
 						onDone(file.toFile());

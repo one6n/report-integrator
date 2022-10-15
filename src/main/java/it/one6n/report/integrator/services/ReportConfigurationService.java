@@ -1,5 +1,7 @@
 package it.one6n.report.integrator.services;
 
+import java.util.NoSuchElementException;
+
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -33,12 +35,14 @@ public class ReportConfigurationService {
 
 	public ReportConfiguration findByCustomer(String customer) {
 		log.debug("findByCustomer={}", customer);
-		return getReportConfigurationRepo().findOneByCustomer(StringUtils.trim(customer)).orElseThrow();
+		return getReportConfigurationRepo().findOneByCustomer(StringUtils.trim(customer)).orElseThrow(
+				() -> new NoSuchElementException("No configuration found for customer=%s".formatted(customer)));
 	}
 
 	public ReportConfigurationDto findDtoByCustomer(String customer) {
 		log.debug("findDtoByCustomer={}", customer);
-		return getReportConfigurationDtoRepo().findOneByCustomer(StringUtils.trim(customer)).orElseThrow();
+		return getReportConfigurationDtoRepo().findOneByCustomer(StringUtils.trim(customer)).orElseThrow(
+				() -> new NoSuchElementException("No configuration found for customer=%s".formatted(customer)));
 	}
 
 	public ReportConfiguration saveReportConfiguration(ReportConfiguration reportConfiguration) {

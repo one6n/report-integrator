@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
@@ -18,21 +19,25 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
-import it.one6n.report.integrator.utils.ReportUtils;
+import it.one6n.report.integrator.utils.ReportsUtils;
 import lombok.Getter;
 
 @Getter
 @ActiveProfiles("test")
 @SpringBootTest
-class ReportUtilsTests {
+class ReportsUtilsTests {
 
 	@Test
 	void shouldReadIndexAllLines() throws IOException {
 		File indexFile = generateIndexTestFile();
 		try {
-			List<Map<String, String>> lineMaps = ReportUtils.readIndexAllLines(indexFile);
+			List<String> headers = new ArrayList<>();
+			List<Map<String, String>> lineMaps = ReportsUtils.readIndexAllLines(indexFile, headers);
+			assertFalse(headers.isEmpty());
 			assertFalse(lineMaps.isEmpty());
+			assertTrue(headers.size() == 3);
 			assertTrue(lineMaps.size() == 10);
+			assertTrue(headers.containsAll(List.of("HEADER1", "HEADER2", "HEADER3")));
 			assertEquals("field-three-1", lineMaps.get(0).get("HEADER3"));
 			assertEquals("field-two-5", lineMaps.get(4).get("HEADER2"));
 			assertEquals("field-one-10", lineMaps.get(9).get("HEADER1"));
@@ -52,7 +57,7 @@ class ReportUtilsTests {
 			String field2Prefix = "field-two-";
 			String field3Prefix = "field-three-";
 			for (int i = 0; i < 10; i++) {
-				StringJoiner joiner = new StringJoiner(ReportUtils.CSV_SEMICOLON_SEPARATOR);
+				StringJoiner joiner = new StringJoiner(ReportsUtils.CSV_SEMICOLON_SEPARATOR);
 				joiner.add(field1Prefix + (i + 1)).add(field2Prefix + (i + 1)).add(field3Prefix + (i + 1));
 				bw.write(joiner.toString());
 				bw.newLine();
