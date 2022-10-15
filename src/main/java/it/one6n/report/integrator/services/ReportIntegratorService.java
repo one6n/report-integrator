@@ -1,19 +1,12 @@
 package it.one6n.report.integrator.services;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.stream.Stream;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.BooleanUtils;
@@ -53,7 +46,7 @@ public class ReportIntegratorService {
 		log.info("Start processing report={}", file.getName());
 		String customer = ReportUtils.getCustomerFromFilename(file.getName(), "_");
 		ReportConfiguration reportConfiguration = getReportConfigurationRepo().findOneByCustomer(customer).orElseThrow(
-				() -> new NoSuchElementException(String.format("No configuration found for customer=%s", customer)));
+				() -> new NoSuchElementException("No configuration found for customer=%s".formatted(customer)));
 		if (log.isDebugEnabled())
 			log.debug("reportConfiguration={}", reportConfiguration);
 		Date processingDate = new Date();
@@ -68,7 +61,6 @@ public class ReportIntegratorService {
 				createExportToSpm(customer, reportConfiguration, spoolDir, processingDate, linesMap);
 			if (BooleanUtils.isTrue(reportConfiguration.getExportToDocumentRoom()))
 				createExportToDocumentRoom(customer, reportConfiguration, spoolDir, processingDate, linesMap);
-			throw new RuntimeException("Ciao");
 		} finally {
 			deleteSpoolDir(spoolDir);
 		}
@@ -112,51 +104,16 @@ public class ReportIntegratorService {
 	}
 
 	private List<Map<String, String>> buildLineMaps(File spoolDir) {
-		File indexFile = foundIndexFile(spoolDir);
-		List<Map<String, String>> lineMaps = readIndexAllLines(indexFile);
-		if (lineMaps == null || lineMaps.isEmpty() || lineMaps.size() < 2)
-			throw new ReportIndexException(String.format(
-					"Error, the index file must contain at least the header and one line. Line(s) found(s)=%s",
-					lineMaps.size()));
+		List<File> indexFiles = ReportUtils.getIndexFiles(spoolDir);
+		if (indexFiles.size() != 1)
+			throw new ReportIndexException(
+					"Invalid number of Index file. Found=%s, must be one".formatted(indexFiles.size()));
+		File indexFile = indexFiles.get(0);
+		List<Map<String, String>> lineMaps = ReportUtils.readIndexAllLines(indexFile);
+		if (lineMaps == null || lineMaps.isEmpty() || lineMaps.size() < 1)
+			throw new ReportIndexException(
+					"Error, the index file must contain at least the header and one line. Line(s) found(s)=%s"
+							.formatted(lineMaps.size()));
 		return lineMaps;
-	}
-
-	private List<Map<String, String>> readIndexAllLines(File indexFile) {
-		List<Map<String, String>> lineMaps = new ArrayList<>();
-		try (BufferedReader br = new BufferedReader(new FileReader(indexFile))) {
-			String line = null;
-			String[] headers = null;
-			boolean firstLine = true;
-			while ((line = br.readLine()) != null) {
-				String[] splittedLine = line.split(ReportUtils.CSV_SEMICOLON_SEPARATOR);
-				if (firstLine) {
-					headers = splittedLine;
-					firstLine = false;
-				} else {
-					Map<String, String> lineMap = new HashMap<>();
-					for (int i = 0; i < headers.length; i++)
-						lineMap.put(headers[i], splittedLine[i]);
-					lineMaps.add(lineMap);
-				}
-			}
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-		return lineMaps;
-	}
-
-	private File foundIndexFile(File spoolDir) {
-		List<File> indexFiles = new ArrayList<>();
-		try (Stream<Path> files = Files.list(spoolDir.toPath())) {
-			files.filter(Files::isRegularFile).filter(ReportUtils::isValidIndexFormat).forEach(file -> {
-				indexFiles.add(file.toFile());
-			});
-			if (indexFiles.size() != 1)
-				throw new ReportIndexException(String
-						.format("Invalid number of Index file. Found=%s, only one is requerid", indexFiles.size()));
-			return indexFiles.get(0);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
 	}
 }
