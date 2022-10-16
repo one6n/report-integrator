@@ -63,6 +63,7 @@ public class ReportIntegratorService {
 				createExportToSpm(customer, reportConfiguration, spoolDir, processingDate, headers, linesMap);
 			if (BooleanUtils.isTrue(reportConfiguration.getExportToDocumentRoom()))
 				createExportToDocumentRoom(customer, reportConfiguration, spoolDir, processingDate, headers, linesMap);
+			log.info("End processing report={}", file.getName());
 		} finally {
 			deleteSpoolDir(spoolDir);
 		}
@@ -75,9 +76,9 @@ public class ReportIntegratorService {
 
 	private void createExportToSpm(String customer, ReportConfiguration reportConfiguration, File spoolDir,
 			Date processDate, List<String> headers, List<Map<String, String>> lineMaps) {
+		log.info("exportToSpm for customer={}", customer);
 		getSpmReportService().generateExportToSpm(customer, reportConfiguration, spoolDir, processDate, headers,
 				lineMaps);
-		log.info("exportToSpm for customer={}", customer);
 	}
 
 	private void createExportToDocumentRoom(String customer, ReportConfiguration reportConfiguration, File spoolDir,
