@@ -33,13 +33,16 @@ public class ReportIntegratorService {
 	private ReportConfigurationService reportConfigurationService;
 	private SpmReportService spmReportService;
 	private DocumentRoomReportService documentRoomReportService;
+	private CustomerReportService customerReportService;
 
 	@Autowired
 	public ReportIntegratorService(ReportConfigurationService reportConfigurationService,
-			SpmReportService spmReportService, DocumentRoomReportService documentRoomReportService) {
+			SpmReportService spmReportService, DocumentRoomReportService documentRoomReportService,
+			CustomerReportService customerReportService) {
 		this.reportConfigurationService = reportConfigurationService;
 		this.spmReportService = spmReportService;
 		this.documentRoomReportService = documentRoomReportService;
+		this.customerReportService = customerReportService;
 	}
 
 	public void processReportFile(File file) {
@@ -55,12 +58,12 @@ public class ReportIntegratorService {
 			populateSpoolDir(file, spoolDir);
 			List<String> headers = new ArrayList<>();
 			List<Map<String, String>> linesMap = buildLineMaps(spoolDir, headers);
-			if (BooleanUtils.isTrue(reportConfiguration.getExportToCustomer()))
-				createExportToCustomer(customer, reportConfiguration, spoolDir, processingDate, headers, linesMap);
 			if (BooleanUtils.isTrue(reportConfiguration.getExportToSpm()))
 				createExportToSpm(customer, reportConfiguration, spoolDir, processingDate, headers, linesMap);
 			if (BooleanUtils.isTrue(reportConfiguration.getExportToDocumentRoom()))
 				createExportToDocumentRoom(customer, reportConfiguration, spoolDir, processingDate, headers, linesMap);
+			if (BooleanUtils.isTrue(reportConfiguration.getExportToCustomer()))
+				createExportToCustomer(customer, reportConfiguration, spoolDir, processingDate, headers, linesMap);
 			log.info("End processing report={}", file.getName());
 		} finally {
 			deleteSpoolDir(spoolDir);
@@ -70,6 +73,8 @@ public class ReportIntegratorService {
 	private void createExportToCustomer(String customer, ReportConfiguration reportConfiguration, File spoolDir,
 			Date processDate, List<String> headers, List<Map<String, String>> lineMaps) {
 		log.info("exportToCustomer={}", customer);
+		getCustomerReportService().generateExportToCustomer(customer, reportConfiguration, spoolDir, processDate,
+				headers, lineMaps);
 	}
 
 	private void createExportToSpm(String customer, ReportConfiguration reportConfiguration, File spoolDir,
