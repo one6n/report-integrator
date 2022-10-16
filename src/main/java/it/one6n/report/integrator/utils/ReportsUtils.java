@@ -1,8 +1,10 @@
 package it.one6n.report.integrator.utils;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -21,6 +23,7 @@ public class ReportsUtils {
 	public static final String ZIP_EXTENSION = "zip";
 	public static final String CSV_EXTENSION = "csv";
 	public static final String PDF_EXTENSION = "pdf";
+	public static final String IDX_EXTENSION = "idx";
 
 	public static final String CSV_SEMICOLON_SEPARATOR = ";";
 
@@ -63,6 +66,10 @@ public class ReportsUtils {
 				ReportsUtils.PDF_EXTENSION);
 	}
 
+	public static boolean isValidHeader(List<String> headerToValidate, List<String> header) {
+		return headerToValidate != null && !headerToValidate.isEmpty() ? headerToValidate.containsAll(header) : false;
+	}
+
 	public static List<Map<String, String>> readIndexAllLines(File indexFile, List<String> headers) {
 		List<Map<String, String>> lineMaps = new ArrayList<>();
 		try (BufferedReader br = new BufferedReader(new FileReader(indexFile))) {
@@ -86,8 +93,29 @@ public class ReportsUtils {
 		return lineMaps;
 	}
 
-	public static boolean isValidHeader(List<String> headerToValidate, List<String> header) {
-		return headerToValidate != null && !headerToValidate.isEmpty() ? headerToValidate.containsAll(header) : false;
+	public static void writeIndexFile(File indexFile, List<String> indexFields, List<Map<String, String>> lineMaps,
+			String fieldsSeparator, boolean addHeader) {
+		try (BufferedWriter bw = new BufferedWriter(new FileWriter(indexFile))) {
+			if (addHeader) {
+				bw.write(String.join(ReportsUtils.CSV_SEMICOLON_SEPARATOR, indexFields));
+				bw.newLine();
+			}
+			for (Map<String, String> lineMap : lineMaps) {
+				StringBuilder sb = new StringBuilder();
+				int i = 0;
+				for (String field : indexFields) {
+					sb.append(lineMap.get(field));
+					i++;
+					if (i < indexFields.size())
+						sb.append(fieldsSeparator);
+				}
+				bw.write(sb.toString());
+				bw.newLine();
+			}
+			bw.flush();
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	public static List<File> getIndexFiles(File spoolDir) {
@@ -107,6 +135,20 @@ public class ReportsUtils {
 			files.filter(Files::isRegularFile).filter(ReportsUtils::isValidPdfFormat).forEach(file -> {
 				try {
 					FileUtils.copyToDirectory(file.toFile(), destDir);
+				} catch (IOException e) {
+					throw new RuntimeException(e);
+				}
+			});
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	public static void movePdFiles(File sourceDir, File destDir) {
+		try (Stream<Path> files = Files.list(sourceDir.toPath())) {
+			files.filter(Files::isRegularFile).filter(ReportsUtils::isValidPdfFormat).forEach(file -> {
+				try {
+					FileUtils.moveFileToDirectory(file.toFile(), destDir, true);
 				} catch (IOException e) {
 					throw new RuntimeException(e);
 				}

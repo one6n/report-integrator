@@ -13,7 +13,8 @@ public record ReportConfigurationDto(
 		String reportExtension,
 		String reportFieldsSeparator, 
 		String customPrefix, 
-		String customDateFormat, 
+		String customDateFormat,
+		String documentRoomFieldsSeparator,
 		List<String> fieldsToCustomer,
 		List<String> fieldsToSpm,
 		List<String> fieldsToDocumentRoom) {}

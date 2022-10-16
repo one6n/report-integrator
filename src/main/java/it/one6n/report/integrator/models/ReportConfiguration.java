@@ -34,6 +34,8 @@ public class ReportConfiguration {
 	private String customPrefix;
 	private String customDateFormat;
 
+	private String documentRoomFieldsSeparator;
+
 	private List<String> fieldsToCustomer;
 	private List<String> fieldsToSpm;
 	private List<String> fieldsToDocumentRoom;

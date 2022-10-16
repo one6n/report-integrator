@@ -29,19 +29,17 @@ public class ReportIntegratorService {
 
 	@Value("${report.spool.dir}")
 	private String reportSpoolDir;
-	@Value("${spm.output.dir}")
-	private String spmOutputDir;
-	@Value("${documentRoom.output.dir}")
-	private String documentRoomOutputDir;
 
 	private ReportConfigurationService reportConfigurationService;
 	private SpmReportService spmReportService;
+	private DocumentRoomReportService documentRoomReportService;
 
 	@Autowired
 	public ReportIntegratorService(ReportConfigurationService reportConfigurationService,
-			SpmReportService spmReportService) {
+			SpmReportService spmReportService, DocumentRoomReportService documentRoomReportService) {
 		this.reportConfigurationService = reportConfigurationService;
 		this.spmReportService = spmReportService;
+		this.documentRoomReportService = documentRoomReportService;
 	}
 
 	public void processReportFile(File file) {
@@ -84,6 +82,8 @@ public class ReportIntegratorService {
 	private void createExportToDocumentRoom(String customer, ReportConfiguration reportConfiguration, File spoolDir,
 			Date processDate, List<String> headers, List<Map<String, String>> lineMaps) {
 		log.info("exportToDocument for customer={}", customer);
+		getDocumentRoomReportService().generateExportToDocumentRoom(customer, reportConfiguration, spoolDir,
+				processDate, headers, lineMaps);
 	}
 
 	private File makeSpoolDir(String filenameWithoutExtension, Date processingDate) {

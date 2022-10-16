@@ -1,8 +1,6 @@
 package it.one6n.report.integrator.services;
 
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -39,38 +37,17 @@ public class SpmReportService {
 						new SimpleDateFormat(ReportsUtils.DEFAULT_DATE_FORMAT).format(processDate),
 						ReportsUtils.CSV_EXTENSION);
 				File spmIndex = new File(workDir, spmIndexFilename);
-				writeSpmIndexFile(spmIndex, spmIndexFields, lineMaps);
+				ReportsUtils.writeIndexFile(spmIndex, spmIndexFields, lineMaps, ReportsUtils.CSV_SEMICOLON_SEPARATOR,
+						true);
 				moveFileToOutputDir(customer, spmIndex);
 			} else
 				throw new ConfigurationException(
-						"Index dosn't contains all the required Field for exporToSpm. Expected=%s, found=%s"
+						"Index doesn't contains all the required Field for exporToSpm. Expected=%s, found=%s"
 								.formatted(spmIndexFields, headers));
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		} finally {
 			FileUtils.deleteQuietly(workDir);
-		}
-	}
-
-	private void writeSpmIndexFile(File spmIndex, List<String> spmIndexFields, List<Map<String, String>> lineMaps) {
-		try (BufferedWriter bw = new BufferedWriter(new FileWriter(spmIndex))) {
-			bw.write(String.join(ReportsUtils.CSV_SEMICOLON_SEPARATOR, spmIndexFields));
-			bw.newLine();
-			for (Map<String, String> lineMap : lineMaps) {
-				StringBuilder sb = new StringBuilder();
-				int i = 0;
-				for (String field : spmIndexFields) {
-					sb.append(lineMap.get(field));
-					i++;
-					if (i < spmIndexFields.size())
-						sb.append(ReportsUtils.CSV_SEMICOLON_SEPARATOR);
-				}
-				bw.write(sb.toString());
-				bw.newLine();
-			}
-			bw.flush();
-		} catch (IOException e) {
-			throw new RuntimeException(e);
 		}
 	}
 
